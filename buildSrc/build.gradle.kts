@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.41")
+    compile("org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.60")
 }
 
 idea {

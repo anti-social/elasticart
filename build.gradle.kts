@@ -23,5 +23,5 @@ subprojects {
         maven("https://kotlin.bintray.com/kotlinx")
     }
     group = "dev.evo"
-    version = "0.0.1"
+    version = "0.0.2"
 }

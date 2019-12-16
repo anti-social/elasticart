@@ -11,8 +11,10 @@ pluginManagement {
     }
 }
 
+enableFeaturePreview("GRADLE_METADATA")
+
 rootProject.name = "elasticart"
 
-include("elasticsearch-client")
+include("elasticsearch-transport")
 
-enableFeaturePreview("GRADLE_METADATA")
+project(":elasticsearch-transport").name = "elasticart-elasticsearch-transport"
