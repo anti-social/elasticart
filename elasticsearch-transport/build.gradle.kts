@@ -16,6 +16,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(kotlin("stdlib-common"))
+                implementation(kotlin("reflect"))
                 implementation(serialization("runtime-common"))
                 implementation(ktorClient("core"))
                 implementation(ktorClient("json"))

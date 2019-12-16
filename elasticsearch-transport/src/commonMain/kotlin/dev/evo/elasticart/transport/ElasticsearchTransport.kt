@@ -11,30 +11,72 @@ import io.ktor.http.content.TextContent
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonException
+import kotlinx.serialization.json.JsonLiteral
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.content
 import kotlinx.serialization.serializer
+import kotlin.math.max
 
 typealias BodyBuilder = StringBuilder.() -> Unit
 
 sealed class ElasticsearchException(msg: String) : Exception(msg) {
-    open class Transport(
+    open class TransportError(
         val statusCode: Int,
-        val statusDescription: String,
-        msg: String = "Elasticsearch server respond with an error"
-    ) : ElasticsearchException(msg) {
+        val error: String
+    ) : ElasticsearchException("Elasticsearch server respond with an error") {
+        private val json = Json(JsonConfiguration.Default)
         open val isRetriable = false
+
+        companion object {
+            private const val MAX_TEXT_ERROR_LENGTH = 80
+        }
+
+        fun reason(): String? {
+            val reason = try {
+                val info = json.parseJson(error)
+                when (val error = info.jsonObject["error"]) {
+                    null -> return null
+                    is JsonObject -> {
+                        val rootCause = error.getArray("root_cause").getObject(0)
+                        StringBuilder().apply {
+                            append(rootCause["reason"]?.content ?: return null)
+                            rootCause["resource.id"]?.let(::append)
+                            rootCause["resource.type"]?.let(::append)
+                        }.toString()
+                    }
+                    else -> return error.content
+                }
+
+            } catch (ex: JsonException) {
+                return error.slice(0 until error.length.coerceAtMost(MAX_TEXT_ERROR_LENGTH))
+            } catch (ex: IllegalStateException) {
+                return error.slice(0 until error.length.coerceAtMost(MAX_TEXT_ERROR_LENGTH))
+            }
+            return reason
+        }
+
+        override fun toString(): String {
+            val reasonArg = when (val reason = reason()) {
+                null -> ""
+                else -> ", \"$reason\""
+            }
+            return "${this::class.simpleName}(${statusCode}${reasonArg})"
+        }
     }
-    class Request(statusDescription: String)
-        : Transport(400, statusDescription)
-    class Authentication(statusDescription: String)
-        : Transport(401, statusDescription)
-    class Authorization(statusDescription: String)
-        : Transport(403, statusDescription)
-    class NotFound(statusDescription: String)
-        : Transport(404, statusDescription)
-    class Conflict(statusDescription: String)
-        : Transport(409, statusDescription)
-    class GatewayTimeout(statusDescription: String)
-        : Transport(504, statusDescription)
+    class RequestError(error: String)
+        : TransportError(400, error)
+    class AuthenticationError(error: String)
+        : TransportError(401, error)
+    class AuthorizationError(error: String)
+        : TransportError(403, error)
+    class NotFoundError(error: String)
+        : TransportError(404, error)
+    class ConflictError(error: String)
+        : TransportError(409, error)
+    class GatewayTimeout(error: String)
+        : TransportError(504, error)
 }
 
 enum class Method {
@@ -112,15 +154,21 @@ class ElasticsearchKtorTransport(
                 )
             }
         }
-        when (response.status.value) {
-            400 -> throw ElasticsearchException.Request(response.status.description)
-            401 -> throw ElasticsearchException.Authentication(response.status.description)
-            403 -> throw ElasticsearchException.Authorization(response.status.description)
-            404 -> throw ElasticsearchException.NotFound(response.status.description)
-            409 -> throw ElasticsearchException.Conflict(response.status.description)
-            504 -> throw ElasticsearchException.GatewayTimeout(response.status.description)
-            in 400..599 -> throw ElasticsearchException.Transport(response.status.value, response.status.description)
+        return processResponse(response)
+    }
+
+    private suspend fun processResponse(response: HttpResponse): String {
+        val statusCode = response.status.value
+        val content = response.readText()
+        throw when (statusCode) {
+            in 200..299 -> return content
+            400 -> ElasticsearchException.RequestError(content)
+            401 -> ElasticsearchException.AuthenticationError(content)
+            403 -> ElasticsearchException.AuthorizationError(content)
+            404 -> ElasticsearchException.NotFoundError(content)
+            409 -> ElasticsearchException.ConflictError(content)
+            504 -> ElasticsearchException.GatewayTimeout(content)
+            else -> ElasticsearchException.TransportError(statusCode, content)
         }
-        return response.readText()
     }
 }

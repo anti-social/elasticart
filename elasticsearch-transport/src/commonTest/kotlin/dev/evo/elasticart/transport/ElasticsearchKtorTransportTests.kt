@@ -151,11 +151,9 @@ class ElasticsearchKtorTransportTests {
             )
         }
         assertEquals(504, ex.statusCode)
-        assertEquals("Gateway Timeout", ex.statusDescription)
-        assertTrue(
-            ex.toString().endsWith(
-                "GatewayTimeout: Elasticsearch server respond with an error"
-            )
+        assertEquals(
+            "GatewayTimeout(504, \"Gateway Timeout\")",
+            ex.toString()
         )
     }
 }
