@@ -3,21 +3,22 @@ package dev.evo.elasticart.transport
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.request.request
-import io.ktor.client.response.HttpResponse
-import io.ktor.client.response.readText
-import io.ktor.http.*
+import io.ktor.client.statement.readText
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.Parameters
+import io.ktor.http.Url
 import io.ktor.http.content.TextContent
+import io.ktor.http.takeFrom
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonException
-import kotlinx.serialization.json.JsonLiteral
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.content
 import kotlinx.serialization.serializer
-import kotlin.math.max
 
 typealias BodyBuilder = StringBuilder.() -> Unit
 
