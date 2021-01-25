@@ -8,9 +8,9 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.Parameters
+import io.ktor.http.takeFrom
 import io.ktor.http.Url
 import io.ktor.http.content.TextContent
-import io.ktor.http.takeFrom
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -118,6 +118,7 @@ interface ElasticsearchTransport {
     suspend fun request(
         method: Method, path: String,
         parameters: Map<String, List<String>>? = null,
+        contentType: ContentType? = null,
         bodyBuilder: BodyBuilder? = null
     ): String
 }
@@ -134,6 +135,7 @@ class ElasticsearchKtorTransport(
         method: Method,
         path: String,
         parameters: Map<String, List<String>>?,
+        contentType: ContentType?,
         bodyBuilder: BodyBuilder?
     ): String {
         val ktorHttpMethod = when (method) {
@@ -164,7 +166,7 @@ class ElasticsearchKtorTransport(
             if (bodyBuilder != null) {
                 this.body = TextContent(
                     StringBuilder().apply(bodyBuilder).toString(),
-                    ContentType.Application.Json
+                    contentType ?: ContentType.Application.Json
                 )
             }
         }

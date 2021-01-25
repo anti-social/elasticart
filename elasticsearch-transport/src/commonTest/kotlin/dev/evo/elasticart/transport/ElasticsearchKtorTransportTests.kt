@@ -11,10 +11,14 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
 import kotlin.test.Test
@@ -126,6 +130,62 @@ class ElasticsearchKtorTransportTests {
                 put("acknowledge", true)
             },
             result
+        )
+    }
+
+    @Test
+    fun testRequestWithCustomContentType() = runTest {
+        val client = ElasticsearchKtorTransport(Url("http://example.com:9200"), MockEngine { request ->
+            assertEquals(
+                request.method,
+                HttpMethod.Post
+            )
+            assertEquals(
+                "/_bulk",
+                request.url.encodedPath
+            )
+            assertEquals(
+                ContentType("application", "x-ndjson"),
+                request.body.contentType
+            )
+            assertEquals(
+                "{\"delete\":{\"_id\":\"123\",\"_index\":\"test\"}}\n",
+                request.body.toByteArray().decodeToString()
+            )
+            val body = buildJsonObject {
+                put("took", 7)
+                put("errors", false)
+                putJsonArray("items") {
+                    addJsonObject {
+                        putJsonObject("delete") {
+                            put("_index", "test")
+                            put("_type", "_doc")
+                            put("_id", "123")
+                        }
+                    }
+                }
+            }
+
+            respond(
+                Json.encodeToString(body)
+            )
+        })
+        val result = client.request(
+            Method.POST, "_bulk",
+            contentType = ContentType("application", "x-ndjson"),
+        ) {
+            append(
+                """
+                    {"delete":{"_id":"123","_index":"test"}}
+                
+                """.trimIndent()
+            )
+        }
+        assertEquals(
+            """
+                {"took":7,"errors":false,"items":[{"delete":{"_index":"test","_type":"_doc","_id":"123"}}]}
+            """.trimIndent(),
+            result,
         )
     }
 
