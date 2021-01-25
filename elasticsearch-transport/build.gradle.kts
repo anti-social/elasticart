@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 kotlin {
     jvm()
     linuxX64()
+    js().nodejs()
 
     sourceSets {
         all {
@@ -56,6 +57,17 @@ kotlin {
             }
         }
         val nativeTest by creating {}
+
+        val jsMain by getting {
+            dependencies {
+                implementation(ktorClient("js"))
+            }
+        }
+        val jsTest by getting {
+            dependencies {
+                implementation(kotlin("test-js"))
+            }
+        }
 
         val nativeTargetNames = targets.withType<KotlinNativeTarget>().names
         project.configure(nativeTargetNames.map { getByName("${it}Main") }) {
