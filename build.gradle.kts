@@ -20,7 +20,6 @@ subprojects {
     repositories {
         mavenCentral()
         jcenter()
-        maven("https://kotlin.bintray.com/kotlinx")
     }
     group = "dev.evo"
     version = "0.0.4"

@@ -17,7 +17,11 @@ kotlin {
             dependencies {
                 implementation(kotlin("stdlib-common"))
                 implementation(kotlin("reflect"))
-                implementation(serialization("runtime-common"))
+
+                implementation(coroutines("core"))
+
+                implementation(serialization("json"))
+
                 implementation(ktorClient("core"))
                 implementation(ktorClient("json"))
                 implementation(ktorClient("serialization"))
@@ -27,7 +31,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
-                implementation(coroutines("core-common"))
+
                 implementation(ktorClient("mock"))
             }
         }
@@ -35,34 +39,24 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(kotlin("stdlib-jdk8"))
-                implementation(serialization("runtime"))
+
                 implementation(ktorClient("cio"))
-                implementation(ktorClient("serialization-jvm"))
             }
         }
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(kotlin("test-junit"))
-                implementation(coroutines("core"))
-                implementation(ktorClient("mock-jvm"))
             }
         }
 
         val nativeMain by creating {
             dependencies {
-                implementation(serialization("runtime-native"))
-                implementation(ktorClient("core-native"))
                 implementation(ktorClient("curl"))
-                implementation(ktorClient("serialization-native"))
             }
         }
-        val nativeTest by creating {
-            dependencies {
-                implementation(coroutines("core-native"))
-                implementation(ktorClient("mock-native"))
-            }
-        }
+        val nativeTest by creating {}
+
         val nativeTargetNames = targets.withType<KotlinNativeTarget>().names
         project.configure(nativeTargetNames.map { getByName("${it}Main") }) {
             dependsOn(nativeMain)

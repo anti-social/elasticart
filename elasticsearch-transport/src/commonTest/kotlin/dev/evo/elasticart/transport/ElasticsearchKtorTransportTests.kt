@@ -10,13 +10,16 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
+
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.putJsonObject
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 
 @ExperimentalStdlibApi
 @io.ktor.util.KtorExperimentalAPI
@@ -48,10 +51,10 @@ class ElasticsearchKtorTransportTests {
         assertEquals(setOf("products_v1", "orders_v2"), aliases.jsonObject.keys)
         assertEquals(
             JsonObject(emptyMap()),
-            aliases.jsonObject
-                .getObject("products_v1")
-                .getObject("aliases")
-                .getObject("products")
+            aliases.jsonObject["products_v1"]!!
+                .jsonObject["aliases"]!!
+                .jsonObject["products"]!!
+                .jsonObject
         )
     }
 
@@ -81,17 +84,17 @@ class ElasticsearchKtorTransportTests {
                 )
             )
         })
-        val body = json {
-            "index" to json {
-                "number_of_replicas" to 2
+        val body = buildJsonObject {
+            putJsonObject("index") {
+                put("number_of_replicas", 2)
             }
         }
         val result = client.jsonRequest(Method.PUT, "products/_settings", body = body)
         assertEquals(
+            buildJsonObject {
+                put("acknowledge", true)
+            },
             result,
-            json {
-                "acknowledge" to true
-            }
         )
     }
 
@@ -119,10 +122,10 @@ class ElasticsearchKtorTransportTests {
         })
         val result = client.jsonRequest(Method.DELETE, "products_v2")
         assertEquals(
-            result,
-            json {
-                "acknowledge" to true
-            }
+            buildJsonObject {
+                put("acknowledge", true)
+            },
+            result
         )
     }
 

@@ -12,13 +12,14 @@ import io.ktor.http.Url
 import io.ktor.http.content.TextContent
 import io.ktor.http.takeFrom
 
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonException
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.content
-import kotlinx.serialization.serializer
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 typealias BodyBuilder = StringBuilder.() -> Unit
 
@@ -27,35 +28,47 @@ sealed class ElasticsearchException(msg: String) : Exception(msg) {
         val statusCode: Int,
         val error: String
     ) : ElasticsearchException("Elasticsearch server respond with an error") {
-        private val json = Json(JsonConfiguration.Default)
+        private val json = Json.Default
         open val isRetriable = false
 
         companion object {
             private const val MAX_TEXT_ERROR_LENGTH = 80
+
+            private fun jsonElementToString(element: JsonElement) = when (element) {
+                is JsonObject -> element.toString()
+                is JsonArray -> element.toString()
+                is JsonPrimitive -> element.content
+            }
+
+            private fun trimRawError(error: String) =
+                error.slice(0 until error.length.coerceAtMost(MAX_TEXT_ERROR_LENGTH))
         }
 
         fun reason(): String? {
-            val reason = try {
-                val info = json.parseJson(error)
-                when (val error = info.jsonObject["error"]) {
+            return try {
+                val info = json.decodeFromString(JsonElement.serializer(), error).jsonObject
+                when (val error = info["error"]) {
                     null -> return null
                     is JsonObject -> {
-                        val rootCause = error.getArray("root_cause").getObject(0)
+                        val rootCause = error["root_cause"]?.jsonArray?.get(0)?.jsonObject
+                            ?: return null
                         StringBuilder().apply {
-                            append(rootCause["reason"]?.content ?: return null)
+                            append(
+                                jsonElementToString(rootCause["reason"] ?: return null)
+                            )
                             rootCause["resource.id"]?.let(::append)
                             rootCause["resource.type"]?.let(::append)
                         }.toString()
                     }
-                    else -> return error.content
+                    is JsonPrimitive -> error.content
+                    is JsonArray -> error.toString()
                 }
 
-            } catch (ex: JsonException) {
-                return error.slice(0 until error.length.coerceAtMost(MAX_TEXT_ERROR_LENGTH))
+            } catch (ex: SerializationException) {
+                return trimRawError(error)
             } catch (ex: IllegalStateException) {
-                return error.slice(0 until error.length.coerceAtMost(MAX_TEXT_ERROR_LENGTH))
+                return trimRawError(error)
             }
-            return reason
         }
 
         override fun toString(): String {
@@ -86,7 +99,7 @@ enum class Method {
 
 interface ElasticsearchTransport {
     companion object {
-        internal val json = Json(JsonConfiguration.Default)
+        internal val json = Json.Default
     }
 
     suspend fun jsonRequest(
@@ -94,12 +107,12 @@ interface ElasticsearchTransport {
     ): JsonElement {
         val response = if (body != null) {
             request(method, path, parameters) {
-                append(json.stringify(JsonElement::class.serializer(), body))
+                append(json.encodeToString(JsonElement.serializer(), body))
             }
         } else {
             request(method, path, parameters, null)
         }
-        return json.parseJson(response)
+        return json.decodeFromString(JsonElement.serializer(), response)
     }
 
     suspend fun request(
