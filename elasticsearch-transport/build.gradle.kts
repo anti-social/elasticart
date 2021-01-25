@@ -82,5 +82,6 @@ kotlin {
 publishing {
     repositories {
         bintray(project, "elasticart")
+        test(project)
     }
 }

@@ -34,3 +34,8 @@ fun RepositoryHandler.bintray(project: Project, packageName: String): MavenArtif
         password = project.bintrayApiKey()
     }
 }
+
+fun RepositoryHandler.test(project: Project): MavenArtifactRepository = maven {
+    name = "test"
+    url = project.uri("file://${project.rootProject.buildDir}/localMaven")
+}
