@@ -99,8 +99,10 @@ enum class Method {
 
 interface ElasticsearchTransport {
     companion object {
-        internal val json = Json.Default
+        private val json = Json.Default
     }
+
+    val baseUrl: Url
 
     suspend fun jsonRequest(
         method: Method, path: String, parameters: Map<String, List<String>>? = null, body: JsonElement? = null
@@ -124,7 +126,8 @@ interface ElasticsearchTransport {
 }
 
 class ElasticsearchKtorTransport(
-    private val baseUrl: Url, engine: HttpClientEngine
+    override val baseUrl: Url,
+    engine: HttpClientEngine,
 ) : ElasticsearchTransport {
 
     private val client = HttpClient(engine) {
