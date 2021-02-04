@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 kotlin {
     jvm()
@@ -24,6 +25,7 @@ kotlin {
                 implementation(serialization("json"))
 
                 implementation(ktorClient("core"))
+                implementation(ktorClient("encoding"))
                 implementation(ktorClient("json"))
                 implementation(ktorClient("serialization"))
             }
