@@ -30,7 +30,7 @@ import kotlin.test.assertFailsWith
 class ElasticsearchKtorTransportTests {
     @Test
     fun testGetJsonRequest() = runTest {
-        val client = ElasticsearchKtorTransport(Url("http://example.com:9200"), MockEngine { request ->
+        val client = ElasticsearchKtorTransport("http://example.com:9200", MockEngine { request ->
             assertEquals(
                 request.method,
                 HttpMethod.Get
@@ -64,7 +64,7 @@ class ElasticsearchKtorTransportTests {
 
     @Test
     fun testPutJsonRequest() = runTest {
-        val client = ElasticsearchKtorTransport(Url("http://example.com:9200"), MockEngine { request ->
+        val client = ElasticsearchKtorTransport("http://example.com:9200", MockEngine { request ->
             assertEquals(
                 request.method,
                 HttpMethod.Put
@@ -104,7 +104,7 @@ class ElasticsearchKtorTransportTests {
 
     @Test
     fun testDeleteJsonRequest() = runTest {
-        val client = ElasticsearchKtorTransport(Url("http://example.com:9200"), MockEngine { request ->
+        val client = ElasticsearchKtorTransport("http://example.com:9200", MockEngine { request ->
             assertEquals(
                 request.method,
                 HttpMethod.Delete
@@ -135,7 +135,7 @@ class ElasticsearchKtorTransportTests {
 
     @Test
     fun testRequestWithCustomContentType() = runTest {
-        val client = ElasticsearchKtorTransport(Url("http://example.com:9200"), MockEngine { request ->
+        val client = ElasticsearchKtorTransport("http://example.com:9200", MockEngine { request ->
             assertEquals(
                 request.method,
                 HttpMethod.Post
@@ -172,7 +172,7 @@ class ElasticsearchKtorTransportTests {
         })
         val result = client.request(
             Method.POST, "_bulk",
-            contentType = ContentType("application", "x-ndjson"),
+            contentType = "application/x-ndjson",
         ) {
             append(
                 """
@@ -191,7 +191,7 @@ class ElasticsearchKtorTransportTests {
 
     @Test
     fun testPostJsonRequestWithTimeout() = runTest {
-        val client = ElasticsearchKtorTransport(Url("http://example.com:9200"), MockEngine { request ->
+        val client = ElasticsearchKtorTransport("http://example.com:9200", MockEngine { request ->
             assertEquals(
                 request.method,
                 HttpMethod.Post

@@ -1,3 +1,5 @@
+@file:Suppress("NAME_SHADOWING")
+
 package dev.evo.elasticart.transport
 
 import io.ktor.client.HttpClient
@@ -12,7 +14,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.Parameters
 import io.ktor.http.takeFrom
-import io.ktor.http.Url
 import io.ktor.utils.io.charsets.Charsets
 import io.ktor.utils.io.core.toByteArray
 
@@ -141,7 +142,7 @@ typealias RequestBodyBuilder = RequestEncoder.() -> Unit
 
 
 abstract class ElasticsearchTransport(
-    val baseUrl: Url,
+    val baseUrl: String,
     config: Config,
 ) {
     companion object {
@@ -159,7 +160,10 @@ abstract class ElasticsearchTransport(
     }
 
     suspend fun jsonRequest(
-        method: Method, path: String, parameters: Map<String, List<String>>? = null, body: JsonElement? = null
+        method: Method,
+        path: String,
+        parameters: Map<String, List<String>>? = null,
+        body: JsonElement? = null
     ): JsonElement {
         val response = if (body != null) {
             request(method, path, parameters) {
@@ -172,15 +176,16 @@ abstract class ElasticsearchTransport(
     }
 
     abstract suspend fun request(
-        method: Method, path: String,
+        method: Method,
+        path: String,
         parameters: Map<String, List<String>>? = null,
-        contentType: ContentType? = null,
+        contentType: String? = null,
         bodyBuilder: RequestBodyBuilder? = null
     ): String
 }
 
 class ElasticsearchKtorTransport(
-    baseUrl: Url,
+    baseUrl: String,
     engine: HttpClientEngine,
     configure: Config.() -> Unit = {},
 ) : ElasticsearchTransport(
@@ -199,7 +204,7 @@ class ElasticsearchKtorTransport(
         method: Method,
         path: String,
         parameters: Map<String, List<String>>?,
-        contentType: ContentType?,
+        contentType: String?,
         bodyBuilder: RequestBodyBuilder?
     ): String {
         val ktorHttpMethod = when (method) {
@@ -233,9 +238,15 @@ class ElasticsearchKtorTransport(
                     this.headers[HttpHeaders.ContentEncoding] = encoding
                 }
 
+                val contentType = if (contentType != null) {
+                    val (contentType, contentSubType) = contentType.split('/', limit = 2)
+                    ContentType(contentType, contentSubType)
+                } else {
+                    ContentType.Application.Json
+                }
                 this.body = ByteArrayContent(
                     requestEncoder.toByteArray(),
-                    contentType ?: ContentType.Application.Json
+                    contentType
                 )
             }
         }
