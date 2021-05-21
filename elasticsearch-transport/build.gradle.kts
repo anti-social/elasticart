@@ -16,9 +16,6 @@ kotlin {
         }
         commonMain {
             dependencies {
-                implementation(kotlin("stdlib-common"))
-                implementation(kotlin("reflect"))
-
                 implementation(coroutines("core"))
 
                 implementation(serialization("json"))
@@ -77,12 +74,5 @@ kotlin {
         project.configure(nativeTargetNames.map { getByName("${it}Test") }) {
             dependsOn(nativeTest)
         }
-    }
-}
-
-publishing {
-    repositories {
-        bintray(project, "elasticart")
-        test(project)
     }
 }
